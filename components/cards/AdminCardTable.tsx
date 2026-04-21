@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldOff, ShieldCheck, Truck, CreditCard } from "lucide-react";
+import { ShieldOff, ShieldCheck, Truck, CreditCard, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Card, CardStatus, DeliveryStatus, CardListResponse } from "@/lib/api/services/cards";
 
@@ -10,6 +10,9 @@ const CARD_STATUS_CFG: Record<CardStatus, { cls: string; label: string }> = {
   active:           { cls: "bg-green-500/10 text-green-400 border-green-500/20",             label: "Active"           },
   blocked:          { cls: "bg-red-500/10 text-red-400 border-red-500/20",                   label: "Blocked"          },
   pending_delivery: { cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",          label: "Pending Delivery" },
+  pending_approval: { cls: "bg-orange-500/10 text-orange-400 border-orange-500/20",          label: "Pending Approval" },
+  frozen:           { cls: "bg-blue-500/10 text-blue-400 border-blue-500/20",                label: "Frozen"           },
+  processing:       { cls: "bg-[#252525] text-[#888888] border-[#2d2d2d]",                  label: "Processing"       },
 };
 
 const DELIVERY_CFG: Record<DeliveryStatus, { cls: string; label: string }> = {
@@ -72,10 +75,12 @@ interface AdminCardTableProps {
   onBlock:          (card: Card) => void;
   onUnblock:        (card: Card) => void;
   onUpdateDelivery: (card: Card) => void;
+  onApprove:        (card: Card) => void;
+  onReject:         (card: Card) => void;
 }
 
 export default function AdminCardTable({
-  data, isLoading, onBlock, onUnblock, onUpdateDelivery,
+  data, isLoading, onBlock, onUnblock, onUpdateDelivery, onApprove, onReject,
 }: AdminCardTableProps) {
   const cards = data?.cards ?? [];
 
@@ -174,8 +179,27 @@ export default function AdminCardTable({
                   {/* Actions */}
                   <td className="pr-5 py-3.5">
                     <div className="flex items-center justify-center gap-1.5">
-                      {/* Block / Unblock */}
-                      {card.status === "blocked" ? (
+                      {/* Approve / Reject for pending_approval */}
+                      {card.status === "pending_approval" ? (
+                        <>
+                          <button
+                            onClick={() => onApprove(card)}
+                            title="Approve card"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-dm-sans font-medium bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/15 transition-colors duration-150"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => onReject(card)}
+                            title="Reject card"
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-dm-sans font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/15 transition-colors duration-150"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            Reject
+                          </button>
+                        </>
+                      ) : card.status === "blocked" ? (
                         <button
                           onClick={() => onUnblock(card)}
                           title="Unblock card"

@@ -10,7 +10,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  getCards, blockCard, unblockCard,
+  getCards, blockCard, unblockCard, approveCard, rejectCard,
   type Card, type CardListResponse,
 } from "@/lib/api/services/cards";
 import AdminCardTable    from "@/components/cards/AdminCardTable";
@@ -22,10 +22,11 @@ import { useTopNavExtras } from "@/context/TopNavExtrasContext";
 const PAGE_LIMIT = 25;
 
 const STATUS_TABS = [
-  { label: "All",              value: ""                 },
-  { label: "Active",           value: "active"           },
-  { label: "Blocked",          value: "blocked"          },
-  { label: "Pending Delivery", value: "pending_delivery" },
+  { label: "All",              value: ""                  },
+  { label: "Pending Approval", value: "pending_approval"  },
+  { label: "Active",           value: "active"            },
+  { label: "Blocked",          value: "blocked"           },
+  { label: "Pending Delivery", value: "pending_delivery"  },
 ];
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
@@ -72,6 +73,8 @@ export default function CardsPage() {
   const [page,            setPage]            = useState(1);
   const [blockTarget,     setBlockTarget]     = useState<{ card: Card; action: "block" | "unblock" } | null>(null);
   const [deliveryTarget,  setDeliveryTarget]  = useState<Card | null>(null);
+  const [approvalTarget,  setApprovalTarget]  = useState<{ card: Card; action: "approve" | "reject" } | null>(null);
+  const [rejectReason,    setRejectReason]    = useState("");
   const [toast,           setToast]           = useState<ToastState | null>(null);
 
   const queryClient = useQueryClient();
@@ -120,6 +123,25 @@ export default function CardsPage() {
     onError: () => showToast("Action failed. Please try again.", "error"),
   });
 
+  const approvalMutation = useMutation({
+    mutationFn: () =>
+      approvalTarget!.action === "approve"
+        ? approveCard(approvalTarget!.card.id)
+        : rejectCard(approvalTarget!.card.id, rejectReason),
+    onSuccess: () => {
+      setApprovalTarget(null);
+      setRejectReason("");
+      queryClient.invalidateQueries({ queryKey });
+      showToast(
+        approvalTarget?.action === "approve"
+          ? "Card approved. User has been notified."
+          : "Card rejected. User has been notified.",
+        "success"
+      );
+    },
+    onError: () => showToast("Action failed. Please try again.", "error"),
+  });
+
   const total      = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
   const rangeStart = (page - 1) * PAGE_LIMIT + 1;
@@ -145,10 +167,10 @@ export default function CardsPage() {
 
       {/* ── Stats ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <MiniStat icon={CreditCard}   label="Total Cards"     value={data?.total                  ?? "—"} iconCls="text-[#f97316]"  bgCls="bg-[rgba(249,115,22,0.1)]" />
-        <MiniStat icon={ShieldCheck}  label="Active"          value={(data?.cards ?? []).filter(c => c.status === "active").length}           iconCls="text-green-400"  bgCls="bg-green-500/10"  />
-        <MiniStat icon={ShieldOff}    label="Blocked"         value={(data?.cards ?? []).filter(c => c.status === "blocked").length}          iconCls="text-red-400"    bgCls="bg-red-500/10"    />
-        <MiniStat icon={Clock}        label="Pending Delivery" value={(data?.cards ?? []).filter(c => c.status === "pending_delivery").length} iconCls="text-yellow-400" bgCls="bg-yellow-500/10" />
+        <MiniStat icon={CreditCard}   label="Total Cards"      value={data?.total                  ?? "—"} iconCls="text-[#f97316]"  bgCls="bg-[rgba(249,115,22,0.1)]" />
+        <MiniStat icon={ShieldCheck}  label="Active"           value={(data?.cards ?? []).filter(c => c.status === "active").length}            iconCls="text-green-400"  bgCls="bg-green-500/10"  />
+        <MiniStat icon={Clock}        label="Pending Approval" value={(data?.cards ?? []).filter(c => c.status === "pending_approval").length}  iconCls="text-orange-400" bgCls="bg-orange-500/10" />
+        <MiniStat icon={ShieldOff}    label="Blocked"          value={(data?.cards ?? []).filter(c => c.status === "blocked").length}           iconCls="text-red-400"    bgCls="bg-red-500/10"    />
       </div>
 
       {/* ── Filter tabs ─────────────────────────────────────────────── */}
@@ -176,6 +198,8 @@ export default function CardsPage() {
         onBlock={(card)   => setBlockTarget({ card, action: "block"   })}
         onUnblock={(card) => setBlockTarget({ card, action: "unblock" })}
         onUpdateDelivery={(card) => setDeliveryTarget(card)}
+        onApprove={(card) => setApprovalTarget({ card, action: "approve" })}
+        onReject={(card)  => setApprovalTarget({ card, action: "reject"  })}
       />
 
       {/* ── Pagination ──────────────────────────────────────────────── */}
@@ -266,6 +290,71 @@ export default function CardsPage() {
               </AlertDialog.Action>
             </div>
 
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
+
+      {/* ── Approve / Reject AlertDialog ─────────────────────────────── */}
+      <AlertDialog.Root
+        open={!!approvalTarget}
+        onOpenChange={(v) => { if (!v && !approvalMutation.isPending) { setApprovalTarget(null); setRejectReason(""); } }}
+      >
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className={OVERLAY_CLS} />
+          <AlertDialog.Content className={CONTENT_CLS}>
+            <div className={cn(
+              "flex items-center justify-center w-12 h-12 rounded-2xl mb-5",
+              approvalTarget?.action === "approve"
+                ? "bg-green-500/10 border border-green-500/20"
+                : "bg-red-500/10 border border-red-500/20"
+            )}>
+              {approvalTarget?.action === "approve"
+                ? <Check className="w-5 h-5 text-green-400" />
+                : <X     className="w-5 h-5 text-red-400"   />}
+            </div>
+            <AlertDialog.Title className="font-syne font-bold text-[#f0f0f0] text-[16px] leading-tight mb-1">
+              {approvalTarget?.action === "approve" ? "Approve Card Request" : "Reject Card Request"}
+            </AlertDialog.Title>
+            <AlertDialog.Description className="text-[13px] font-dm-sans text-[#888888] leading-relaxed mb-4">
+              {approvalTarget?.action === "approve"
+                ? "This will activate the card and notify the user."
+                : "This will reject and block the card. Please provide a reason."}
+            </AlertDialog.Description>
+            {approvalTarget?.card && (
+              <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#252525] mb-4">
+                <span className="font-mono text-[13px] text-[#f0f0f0] tracking-widest">•••• {approvalTarget.card.last_four ?? "–"}</span>
+                <span className="text-[11px] font-dm-sans text-[#888888] font-mono">{approvalTarget.card.user_id.slice(0,8)}…</span>
+              </div>
+            )}
+            {approvalTarget?.action === "reject" && (
+              <input
+                className="w-full px-3.5 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#252525] text-[13px] font-dm-sans text-[#f0f0f0] placeholder-[#555] mb-4 outline-none focus:border-[#f97316]/50"
+                placeholder="Reason for rejection…"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+              />
+            )}
+            <div className="flex gap-3">
+              <AlertDialog.Cancel className="flex-1 px-4 py-2.5 rounded-xl text-[13px] font-dm-sans font-medium text-[#888888] border border-[#252525] bg-[#1a1a1a] hover:bg-[#222222] hover:text-[#f0f0f0] transition-colors duration-150">
+                Cancel
+              </AlertDialog.Cancel>
+              <AlertDialog.Action
+                onClick={(e) => { e.preventDefault(); approvalMutation.mutate(); }}
+                disabled={approvalTarget?.action === "reject" && !rejectReason.trim()}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-dm-sans font-semibold border transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed",
+                  approvalTarget?.action === "approve"
+                    ? "bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/15"
+                    : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/15"
+                )}
+              >
+                {approvalMutation.isPending
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : approvalTarget?.action === "approve"
+                    ? <><Check className="w-4 h-4" /> Approve</>
+                    : <><X     className="w-4 h-4" /> Reject</>}
+              </AlertDialog.Action>
+            </div>
           </AlertDialog.Content>
         </AlertDialog.Portal>
       </AlertDialog.Root>

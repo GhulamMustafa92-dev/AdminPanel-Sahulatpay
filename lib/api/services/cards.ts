@@ -1,6 +1,6 @@
 import apiClient from "../client";
 
-export type CardStatus    = "active" | "blocked" | "pending_delivery";
+export type CardStatus    = "active" | "blocked" | "pending_delivery" | "pending_approval" | "frozen" | "processing";
 export type DeliveryStatus =
   | "processing"
   | "dispatched"
@@ -52,4 +52,12 @@ export async function updateDeliveryStatus(
   reason = ""
 ): Promise<void> {
   await apiClient.patch(`/admin/cards/${card_id}/delivery-status`, { delivery_status, reason });
+}
+
+export async function approveCard(card_id: string, reason = "Approved by admin"): Promise<void> {
+  await apiClient.post(`/admin/cards/${card_id}/approve`, { reason });
+}
+
+export async function rejectCard(card_id: string, reason: string): Promise<void> {
+  await apiClient.post(`/admin/cards/${card_id}/reject`, { reason });
 }
