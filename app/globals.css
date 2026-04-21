@@ -1,0 +1,181 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  /* ── Light theme (default) ─────────────────────────────────────────── */
+  :root {
+    --bg-primary:    #f5f7fa;
+    --bg-secondary:  #ffffff;
+    --bg-card:       #ffffff;
+    --bg-card2:      #f0f2f5;
+    --orange:        #f97316;
+    --orange-dim:    #ea580c;
+    --orange-glow:   rgba(249, 115, 22, 0.10);
+    --orange-border: rgba(249, 115, 22, 0.25);
+    --text-primary:  #111827;
+    --text-secondary:#4b5563;
+    --text-muted:    #9ca3af;
+    --border-color:  #e5e7eb;
+    --border-active: #d1d5db;
+
+    --background:          #f5f7fa;
+    --foreground:          #111827;
+    --card:                #ffffff;
+    --card-foreground:     #111827;
+    --popover:             #ffffff;
+    --popover-foreground:  #111827;
+    --primary:             #f97316;
+    --primary-foreground:  #ffffff;
+    --secondary:           #f0f2f5;
+    --secondary-foreground:#111827;
+    --muted:               #f0f2f5;
+    --muted-foreground:    #6b7280;
+    --accent:              #f0f2f5;
+    --accent-foreground:   #111827;
+    --destructive:         #ef4444;
+    --border:              #e5e7eb;
+    --input:               #e5e7eb;
+    --ring:                #f97316;
+    --radius:              0.625rem;
+
+    --sidebar:                   #ffffff;
+    --sidebar-foreground:        #111827;
+    --sidebar-primary:           #f97316;
+    --sidebar-primary-foreground:#ffffff;
+    --sidebar-accent:            #f5f7fa;
+    --sidebar-accent-foreground: #111827;
+    --sidebar-border:            #e5e7eb;
+    --sidebar-ring:              #f97316;
+
+    --chart-1: #f97316;
+    --chart-2: #6b7280;
+    --chart-3: #d1d5db;
+    --chart-4: #e5e7eb;
+    --chart-5: #f5f7fa;
+    --chart-grid: rgba(0, 0, 0, 0.07);
+  }
+
+  /* ── Dark theme ────────────────────────────────────────────────────── */
+  .dark {
+    --bg-primary:    #0a0a0a;
+    --bg-secondary:  #111111;
+    --bg-card:       #1a1a1a;
+    --bg-card2:      #222222;
+    --orange:        #f97316;
+    --orange-dim:    #ea580c;
+    --orange-glow:   rgba(249, 115, 22, 0.12);
+    --orange-border: rgba(249, 115, 22, 0.25);
+    --text-primary:  #f0f0f0;
+    --text-secondary:#888888;
+    --text-muted:    #4a4a4a;
+    --border-color:  #252525;
+    --border-active: #2d2d2d;
+
+    --background:          #0a0a0a;
+    --foreground:          #f0f0f0;
+    --card:                #1a1a1a;
+    --card-foreground:     #f0f0f0;
+    --popover:             #1a1a1a;
+    --popover-foreground:  #f0f0f0;
+    --primary:             #f97316;
+    --primary-foreground:  #0a0a0a;
+    --secondary:           #111111;
+    --secondary-foreground:#f0f0f0;
+    --muted:               #222222;
+    --muted-foreground:    #888888;
+    --accent:              #222222;
+    --accent-foreground:   #f0f0f0;
+    --destructive:         #ef4444;
+    --border:              #252525;
+    --input:               #252525;
+    --ring:                #f97316;
+    --radius:              0.625rem;
+
+    --sidebar:                   #111111;
+    --sidebar-foreground:        #f0f0f0;
+    --sidebar-primary:           #f97316;
+    --sidebar-primary-foreground:#0a0a0a;
+    --sidebar-accent:            #222222;
+    --sidebar-accent-foreground: #f0f0f0;
+    --sidebar-border:            #252525;
+    --sidebar-ring:              #f97316;
+
+    --chart-1: #f97316;
+    --chart-2: #888888;
+    --chart-3: #4a4a4a;
+    --chart-4: #2d2d2d;
+    --chart-5: #222222;
+    --chart-grid: rgba(255, 255, 255, 0.04);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-dm-sans), sans-serif;
+  }
+}
+
+/* ── Light-mode overrides for hardcoded Tailwind dark hex classes ────────────
+   These override the JIT-generated classes when html does NOT have .dark     */
+
+/* Backgrounds */
+html:not(.dark) .bg-\[\#0a0a0a\],
+html:not(.dark) .bg-\[\#0d0d0d\],
+html:not(.dark) .bg-\[\#111\],
+html:not(.dark) .bg-\[\#111111\]   { background-color: #ffffff; }
+html:not(.dark) .bg-\[\#1a1a1a\],
+html:not(.dark) .bg-\[\#18181b\]   { background-color: #f3f4f6; }
+html:not(.dark) .bg-\[\#222\],
+html:not(.dark) .bg-\[\#222222\]   { background-color: #e9ecef; }
+html:not(.dark) .bg-\[\#252525\]   { background-color: #e5e7eb; }
+html:not(.dark) .bg-\[\#0b1a0b\]   { background-color: #f0fdf4; }
+html:not(.dark) .bg-\[\#1a0b0b\]   { background-color: #fef2f2; }
+
+/* Hover backgrounds */
+html:not(.dark) .hover\:bg-\[\#111\]:hover,
+html:not(.dark) .hover\:bg-\[\#111111\]:hover { background-color: #f9fafb; }
+html:not(.dark) .hover\:bg-\[\#1a1a1a\]:hover { background-color: #f3f4f6; }
+html:not(.dark) .hover\:bg-\[\#222\]:hover     { background-color: #e9ecef; }
+
+/* Text */
+html:not(.dark) .text-\[\#f0f0f0\]  { color: #111827; }
+html:not(.dark) .text-\[\#f5f5f5\]  { color: #1f2937; }
+html:not(.dark) .text-\[\#cccccc\]  { color: #374151; }
+html:not(.dark) .text-\[\#888\],
+html:not(.dark) .text-\[\#888888\]  { color: #6b7280; }
+html:not(.dark) .text-\[\#666\],
+html:not(.dark) .text-\[\#666666\]  { color: #6b7280; }
+html:not(.dark) .text-\[\#555\],
+html:not(.dark) .text-\[\#555555\]  { color: #4b5563; }
+html:not(.dark) .text-\[\#444\],
+html:not(.dark) .text-\[\#444444\]  { color: #374151; }
+html:not(.dark) .text-\[\#4a4a4a\]  { color: #6b7280; }
+html:not(.dark) .text-\[\#3a3a3a\]  { color: #4b5563; }
+
+/* Hover text */
+html:not(.dark) .hover\:text-\[\#f0f0f0\]:hover { color: #111827; }
+
+/* Borders */
+html:not(.dark) .border-\[\#1a1a1a\],
+html:not(.dark) .border-\[\#1e1e1e\]  { border-color: #e5e7eb; }
+html:not(.dark) .border-\[\#252525\]  { border-color: #d1d5db; }
+html:not(.dark) .border-\[\#2d2d2d\]  { border-color: #9ca3af; }
+html:not(.dark) .border-\[\#333\],
+html:not(.dark) .border-\[\#333333\]  { border-color: #9ca3af; }
+
+/* Hover borders */
+html:not(.dark) .hover\:border-\[\#252525\]:hover { border-color: #d1d5db; }
+html:not(.dark) .hover\:border-\[\#333333\]:hover  { border-color: #9ca3af; }
