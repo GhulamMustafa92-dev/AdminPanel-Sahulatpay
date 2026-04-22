@@ -21,6 +21,10 @@ import {
   Bot,
   ChevronLeft,
   ArrowRightFromLine,
+  FileWarning,
+  RotateCcw,
+  MessageSquareWarning,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { adminLogout } from "@/lib/auth";
@@ -28,9 +32,7 @@ import { adminLogout } from "@/lib/auth";
 const NAV_SECTIONS = [
   {
     label: "OVERVIEW",
-    items: [
-      { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    ],
+    items: [{ href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" }],
   },
   {
     label: "USERS",
@@ -42,11 +44,27 @@ const NAV_SECTIONS = [
   {
     label: "FINANCE",
     items: [
-      { href: "/dashboard/transactions", icon: ArrowLeftRight, label: "Transactions" },
+      {
+        href: "/dashboard/transactions",
+        icon: ArrowLeftRight,
+        label: "Transactions",
+      },
       { href: "/dashboard/savings", icon: PiggyBank, label: "Savings" },
-      { href: "/dashboard/investments", icon: TrendingUp, label: "Investments" },
-      { href: "/dashboard/high-yield", icon: Percent, label: "High-Yield Deposits" },
-      { href: "/dashboard/splits", icon: SplitSquareVertical, label: "Splits Monitor" },
+      {
+        href: "/dashboard/investments",
+        icon: TrendingUp,
+        label: "Investments",
+      },
+      {
+        href: "/dashboard/high-yield",
+        icon: Percent,
+        label: "High-Yield Deposits",
+      },
+      {
+        href: "/dashboard/splits",
+        icon: SplitSquareVertical,
+        label: "Splits Monitor",
+      },
       { href: "/dashboard/finance", icon: FileText, label: "Limit Requests" },
     ],
   },
@@ -54,6 +72,22 @@ const NAV_SECTIONS = [
     label: "RISK & SECURITY",
     items: [
       { href: "/dashboard/fraud", icon: ShieldAlert, label: "Fraud Center" },
+      {
+        href: "/dashboard/str-reports",
+        icon: FileWarning,
+        label: "STR Reports",
+      },
+      {
+        href: "/dashboard/reversal-requests",
+        icon: RotateCcw,
+        label: "Reversal Requests",
+      },
+      {
+        href: "/dashboard/disputes",
+        icon: MessageSquareWarning,
+        label: "Disputes",
+      },
+      { href: "/dashboard/login-audit", icon: Lock, label: "Login Audit" },
       { href: "/dashboard/cards", icon: CreditCard, label: "Cards" },
     ],
   },
@@ -93,7 +127,7 @@ export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       className={cn(
         "flex flex-col h-full shrink-0 border-r overflow-hidden transition-all duration-300 ease-in-out",
         "border-[#252525] bg-[#111111]",
-        collapsed ? "w-0 border-r-0" : "w-60"
+        collapsed ? "w-0 border-r-0" : "w-60",
       )}
     >
       {/* ── Logo + collapse toggle ──────────────────── */}
@@ -133,7 +167,7 @@ export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                     "transition-all duration-150 whitespace-nowrap overflow-hidden",
                     active
                       ? "bg-[rgba(249,115,22,0.1)] text-[#f97316]"
-                      : "text-[#888888] hover:bg-[rgba(249,115,22,0.06)] hover:text-[#f0f0f0]"
+                      : "text-[#888888] hover:bg-[rgba(249,115,22,0.06)] hover:text-[#f0f0f0]",
                   )}
                 >
                   {active && (
@@ -142,7 +176,7 @@ export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
                   <Icon
                     className={cn(
                       "w-4 h-4 shrink-0",
-                      active ? "text-[#f97316]" : "text-[#888888]"
+                      active ? "text-[#f97316]" : "text-[#888888]",
                     )}
                   />
                   <span className="truncate">{label}</span>
@@ -157,7 +191,9 @@ export default function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       <div className="border-t border-[#252525] p-3 shrink-0">
         <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg bg-[#1a1a1a] mb-2">
           <div className="w-8 h-8 rounded-full bg-[rgba(249,115,22,0.2)] flex items-center justify-center shrink-0">
-            <span className="text-[11px] font-syne font-bold text-[#f97316] select-none">SA</span>
+            <span className="text-[11px] font-syne font-bold text-[#f97316] select-none">
+              SA
+            </span>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[12px] font-semibold text-[#f0f0f0] truncate font-dm-sans leading-tight">

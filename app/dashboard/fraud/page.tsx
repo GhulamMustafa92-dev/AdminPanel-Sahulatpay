@@ -3,18 +3,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ShieldAlert, CheckCircle2, AlertTriangle, X, Check,
-  ChevronLeft, ChevronRight, TrendingDown,
+  ShieldAlert,
+  CheckCircle2,
+  AlertTriangle,
+  X,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  TrendingDown,
+  Brain,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   getFraudAlerts,
+  getFraudFeed,
   type FraudAlert,
   type FraudListResponse,
+  type FraudFeedResponse,
+  type FraudFeedItem,
 } from "@/lib/api/services/fraud";
 import FraudAlertList from "@/components/fraud/FraudAlertList";
-import ResolveDialog  from "@/components/fraud/ResolveDialog";
+import FraudFeedTable from "@/components/fraud/FraudFeedTable";
+import ResolveDialog from "@/components/fraud/ResolveDialog";
 import { useTopNavExtras } from "@/context/TopNavExtrasContext";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -22,29 +33,50 @@ import { useTopNavExtras } from "@/context/TopNavExtrasContext";
 const PAGE_LIMIT = 20;
 
 const STATUS_TABS = [
-  { label: "Open",     value: "open"     },
+  { label: "Live Feed", value: "feed" },
+  { label: "Open", value: "open" },
   { label: "Resolved", value: "resolved" },
 ];
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
-interface ToastState { message: string; type: "success" | "error" }
+interface ToastState {
+  message: string;
+  type: "success" | "error";
+}
 
 // ── Mini stat card ────────────────────────────────────────────────────────────
 
 function MiniStat({
-  icon: Icon, label, value, iconCls, bgCls,
-}: { icon: LucideIcon; label: string; value: string | number; iconCls: string; bgCls: string }) {
+  icon: Icon,
+  label,
+  value,
+  iconCls,
+  bgCls,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string | number;
+  iconCls: string;
+  bgCls: string;
+}) {
   return (
     <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl bg-[#1a1a1a] border border-[#252525]">
-      <div className={cn("flex items-center justify-center w-9 h-9 rounded-lg shrink-0", bgCls)}>
+      <div
+        className={cn(
+          "flex items-center justify-center w-9 h-9 rounded-lg shrink-0",
+          bgCls,
+        )}
+      >
         <Icon className={cn("w-4 h-4", iconCls)} />
       </div>
       <div>
         <p className="text-[10px] font-dm-sans uppercase tracking-[0.08em] text-[#4a4a4a] leading-none mb-1">
           {label}
         </p>
-        <p className="font-syne font-bold text-[#f0f0f0] text-[18px] leading-none">{value}</p>
+        <p className="font-syne font-bold text-[#f0f0f0] text-[18px] leading-none">
+          {value}
+        </p>
       </div>
     </div>
   );
@@ -53,27 +85,45 @@ function MiniStat({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function FraudPage() {
-  const [status,   setStatus]   = useState("open");
-  const [page,     setPage]     = useState(1);
+  const [status, setStatus] = useState("open");
+  const [page, setPage] = useState(1);
 
-  const [selectedAlert,  setSelectedAlert]  = useState<FraudAlert | null>(null);
-  const [dialogOpen,     setDialogOpen]     = useState(false);
-  const [toast,          setToast]          = useState<ToastState | null>(null);
+  const [selectedAlert, setSelectedAlert] = useState<FraudAlert | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [toast, setToast] = useState<ToastState | null>(null);
 
   const { setExtras, clearExtras } = useTopNavExtras();
 
   const { data, isLoading, refetch } = useQuery<FraudListResponse>({
     queryKey: ["fraud-alerts", page, status],
-    queryFn:  () => getFraudAlerts({
-      page,
-      per_page: PAGE_LIMIT,
-      resolved: status === "resolved",
-    }),
+    queryFn: () =>
+      getFraudAlerts({
+        page,
+        per_page: PAGE_LIMIT,
+        resolved: status === "resolved",
+      }),
     placeholderData: (prev) => prev,
     refetchInterval: 15_000,
   });
 
-  const handleRefetch = useCallback(() => { refetch(); }, [refetch]);
+  const feedSeverityFilter = "high,critical";
+
+  const {
+    data: feedData,
+    isLoading: feedLoading,
+    refetch: feedRefetch,
+  } = useQuery<FraudFeedResponse>({
+    queryKey: ["fraud-feed", feedSeverityFilter],
+    queryFn: () =>
+      getFraudFeed({ severity: feedSeverityFilter, page: 1, per_page: 25 }),
+    refetchInterval: 10_000,
+    enabled: status === "feed",
+  });
+
+  const handleRefetch = useCallback(() => {
+    refetch();
+    if (status === "feed") feedRefetch();
+  }, [refetch, feedRefetch, status]);
 
   useEffect(() => {
     setExtras({ onRefresh: handleRefetch });
@@ -95,26 +145,33 @@ export default function FraudPage() {
     refetch();
   };
 
-  const flags      = data?.flags ?? [];
-  const total      = flags.length;
+  const flags = data?.flags ?? [];
+  const feedItems = feedData?.feed ?? [];
+  const feedCount = feedData?.count ?? 0;
+  const total = flags.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT));
   const rangeStart = (page - 1) * PAGE_LIMIT + 1;
-  const rangeEnd   = Math.min(page * PAGE_LIMIT, total);
+  const rangeEnd = Math.min(page * PAGE_LIMIT, total);
 
   const resetPage = () => setPage(1);
 
   return (
     <div className="space-y-5">
-
       {/* ── Page header ─────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
         <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20">
           <ShieldAlert className="w-4 h-4 text-red-400" />
         </div>
         <div>
-          <h2 className="font-syne font-bold text-[#f0f0f0] text-xl leading-tight">Fraud Center</h2>
+          <h2 className="font-syne font-bold text-[#f0f0f0] text-xl leading-tight">
+            Fraud Center
+          </h2>
           <p className="text-[11px] font-dm-sans text-[#888888] leading-none mt-0.5">
-            {isLoading ? "Loading…" : `${total.toLocaleString()} alert${total !== 1 ? "s" : ""}`}
+            {isLoading
+              ? "Loading…"
+              : status === "feed"
+                ? `${feedCount} active signal${feedCount !== 1 ? "s" : ""} (last 24h)`
+                : `${total.toLocaleString()} alert${total !== 1 ? "s" : ""}`}
           </p>
         </div>
       </div>
@@ -122,24 +179,34 @@ export default function FraudPage() {
       {/* ── Stats row ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <MiniStat
-          icon={ShieldAlert}   label="Total Flags"
+          icon={ShieldAlert}
+          label="Total Flags"
           value={total}
-          iconCls="text-red-400"    bgCls="bg-red-500/10"
+          iconCls="text-red-400"
+          bgCls="bg-red-500/10"
         />
         <MiniStat
-          icon={AlertTriangle} label="High Severity"
-          value={flags.filter(f => f.severity === "high").length}
-          iconCls="text-[#f97316]"  bgCls="bg-[rgba(249,115,22,0.1)]"
+          icon={AlertTriangle}
+          label="High Severity"
+          value={flags.filter((f) => f.severity === "high").length}
+          iconCls="text-[#f97316]"
+          bgCls="bg-[rgba(249,115,22,0.1)]"
         />
         <MiniStat
-          icon={CheckCircle2}  label="Resolved"
-          value={flags.filter(f => f.is_resolved).length}
-          iconCls="text-green-400"  bgCls="bg-green-500/10"
+          icon={CheckCircle2}
+          label="Resolved"
+          value={flags.filter((f) => f.is_resolved).length}
+          iconCls="text-green-400"
+          bgCls="bg-green-500/10"
         />
         <MiniStat
-          icon={TrendingDown}  label="Critical"
-          value={flags.filter(f => f.severity === "high" && !f.is_resolved).length}
-          iconCls="text-yellow-400" bgCls="bg-yellow-500/10"
+          icon={TrendingDown}
+          label="Critical"
+          value={
+            flags.filter((f) => f.severity === "high" && !f.is_resolved).length
+          }
+          iconCls="text-yellow-400"
+          bgCls="bg-yellow-500/10"
         />
       </div>
 
@@ -150,39 +217,63 @@ export default function FraudPage() {
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
-              onClick={() => { setStatus(tab.value); resetPage(); }}
+              onClick={() => {
+                setStatus(tab.value);
+                resetPage();
+              }}
               className={cn(
                 "px-3 py-1.5 rounded-md text-[11px] font-dm-sans font-medium transition-all duration-150",
                 status === tab.value
                   ? "bg-[rgba(249,115,22,0.12)] text-[#f97316] border border-[rgba(249,115,22,0.2)]"
-                  : "text-[#888888] hover:text-[#f0f0f0] border border-transparent"
+                  : "text-[#888888] hover:text-[#f0f0f0] border border-transparent",
               )}
             >
               {tab.label}
-              {tab.value === "open" && flags.filter(f => !f.is_resolved).length > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] bg-red-500/20 text-red-400 font-semibold">
-                  {flags.filter(f => !f.is_resolved).length}
-                </span>
-              )}
+              {tab.value === "open" &&
+                flags.filter((f) => !f.is_resolved).length > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] bg-red-500/20 text-red-400 font-semibold">
+                    {flags.filter((f) => !f.is_resolved).length}
+                  </span>
+                )}
             </button>
           ))}
         </div>
-
       </div>
 
-      {/* ── Alert list ──────────────────────────────────────────────── */}
-      <FraudAlertList
-        alerts={flags}
-        isLoading={isLoading}
-        onAction={handleAction}
-      />
+      {/* ── DeepSeek AI banner (feed only) ──────────────────────────── */}
+      {status === "feed" && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[rgba(249,115,22,0.06)] border border-[rgba(249,115,22,0.15)]">
+          <Brain className="w-4 h-4 text-[#f97316] shrink-0" />
+          <p className="text-[12px] font-dm-sans text-[#888888] leading-relaxed">
+            <span className="text-[#f97316] font-semibold">DeepSeek AI</span>{" "}
+            scores are shown alongside rule-based scores. Live feed shows
+            unresolved flags from the last 24 hours, filtered to high &amp;
+            critical severity.
+          </p>
+        </div>
+      )}
 
-      {/* ── Pagination ──────────────────────────────────────────────── */}
-      {total > PAGE_LIMIT && (
+      {/* ── Content: Feed or Alert list ─────────────────────────────── */}
+      {status === "feed" ? (
+        <FraudFeedTable items={feedItems} isLoading={feedLoading} />
+      ) : (
+        <FraudAlertList
+          alerts={flags}
+          isLoading={isLoading}
+          onAction={handleAction}
+        />
+      )}
+
+      {/* ── Pagination (alerts only) ─────────────────────────────────── */}
+      {status !== "feed" && total > PAGE_LIMIT && (
         <div className="flex items-center justify-between pt-1 px-0.5">
           <span className="text-[12px] font-dm-sans text-[#888888]">
-            Showing <span className="text-[#f0f0f0]">{rangeStart}–{rangeEnd}</span> of{" "}
-            <span className="text-[#f0f0f0]">{total.toLocaleString()}</span> alerts
+            Showing{" "}
+            <span className="text-[#f0f0f0]">
+              {rangeStart}–{rangeEnd}
+            </span>{" "}
+            of <span className="text-[#f0f0f0]">{total.toLocaleString()}</span>{" "}
+            alerts
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -210,29 +301,38 @@ export default function FraudPage() {
       <ResolveDialog
         alert={selectedAlert}
         open={dialogOpen}
-        onOpenChange={(v) => { if (!v) setSelectedAlert(null); setDialogOpen(v); }}
+        onOpenChange={(v) => {
+          if (!v) setSelectedAlert(null);
+          setDialogOpen(v);
+        }}
         onSuccess={handleSuccess}
       />
 
       {/* ── Toast ───────────────────────────────────────────────────── */}
       {toast && (
-        <div className={cn(
-          "fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3.5 rounded-xl border shadow-2xl",
-          "font-dm-sans text-[13px] max-w-sm transition-all duration-300",
-          toast.type === "success"
-            ? "bg-[#0b1a0b] border-green-500/30 text-green-400"
-            : "bg-[#1a0b0b] border-red-500/30 text-red-400"
-        )}>
-          {toast.type === "success"
-            ? <Check className="w-4 h-4 shrink-0" />
-            : <AlertTriangle className="w-4 h-4 shrink-0" />}
+        <div
+          className={cn(
+            "fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3.5 rounded-xl border shadow-2xl",
+            "font-dm-sans text-[13px] max-w-sm transition-all duration-300",
+            toast.type === "success"
+              ? "bg-[#0b1a0b] border-green-500/30 text-green-400"
+              : "bg-[#1a0b0b] border-red-500/30 text-red-400",
+          )}
+        >
+          {toast.type === "success" ? (
+            <Check className="w-4 h-4 shrink-0" />
+          ) : (
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+          )}
           <span className="flex-1">{toast.message}</span>
-          <button onClick={() => setToast(null)} className="opacity-50 hover:opacity-100 transition-opacity ml-1">
+          <button
+            onClick={() => setToast(null)}
+            className="opacity-50 hover:opacity-100 transition-opacity ml-1"
+          >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
-
     </div>
   );
 }
