@@ -5,6 +5,7 @@ export type KycStatus = "pending" | "approved" | "rejected";
 export interface KycItem {
   id:                 string;
   user_id:            string;
+  review_type?:       string;
   user_name?:         string;
   user_phone?:        string;
   account_cnic?:      string;
@@ -15,8 +16,10 @@ export interface KycItem {
   extracted_father?:  string;
   extracted_address?: string;
   cnic_masked?:       string;
+  face_confidence?:   number;
   front_image_url?:   string;
   back_image_url?:    string;
+  selfie_url?:        string;
   rejection_reason?:  string;
   submitted_at?:      string;
   reviewed_at?:       string;

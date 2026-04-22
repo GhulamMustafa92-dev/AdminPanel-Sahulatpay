@@ -376,6 +376,16 @@ export default function KycDocViewer({ item, onActionDone }: KycDocViewerProps) 
             <span className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-dm-sans font-medium border", statusCfg.cls)}>
               {statusCfg.label}
             </span>
+            {item.review_type && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-dm-sans font-medium border bg-[rgba(99,102,241,0.1)] text-[#818cf8] border-[rgba(99,102,241,0.25)] capitalize">
+                {item.review_type}
+              </span>
+            )}
+            {item.face_confidence != null && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-dm-sans font-medium border bg-[rgba(34,197,94,0.1)] text-green-400 border-green-500/20">
+                Face match {item.face_confidence.toFixed(1)}%
+              </span>
+            )}
             <span className="text-[11px] font-dm-sans text-[#4a4a4a]">
               Submitted {safeDate(item.submitted_at, "MMM d, yyyy")}
             </span>
@@ -423,16 +433,18 @@ export default function KycDocViewer({ item, onActionDone }: KycDocViewerProps) 
           Identity Documents
         </p>
 
-        {/* CNIC Front + Back (2-col grid) */}
+        {/* CNIC Front + Back (2-col grid) — always shown; backend provides fallback for liveness reviews */}
         <div className="grid grid-cols-2 gap-3 mb-3">
           <RevealGuard url={item.front_image_url} label="CNIC Front" aspect="aspect-video" />
           <RevealGuard url={item.back_image_url}  label="CNIC Back"  aspect="aspect-video" />
         </div>
 
-        {/* Selfie (centered, portrait aspect) */}
-        <div className="max-w-[220px] mx-auto">
-          <RevealGuard url={item.selfie_url} label="Selfie" aspect="aspect-[3/4]" />
-        </div>
+        {/* Selfie — only for liveness/fingerprint reviews */}
+        {(item.review_type === "liveness" || item.review_type === "fingerprint" || item.selfie_url) && (
+          <div className="max-w-[220px] mx-auto">
+            <RevealGuard url={item.selfie_url} label="Live Selfie" aspect="aspect-[3/4]" />
+          </div>
+        )}
       </div>
 
       {/* ── Action buttons ────────────────────────────────────────────────── */}
