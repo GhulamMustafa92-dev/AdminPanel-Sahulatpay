@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source:      "/api/v1/:path*",
-        destination: `http://localhost:8000/api/v1/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") || "https://web-production-6c2cd.up.railway.app"}/api/v1/:path*`,
       },
     ];
   },
