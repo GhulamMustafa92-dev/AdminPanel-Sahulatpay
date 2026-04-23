@@ -23,16 +23,18 @@ const STATUS_CFG: Record<InvestmentStatus, { cls: string; label: string }> = {
   active:    { cls: "bg-[rgba(249,115,22,0.1)] text-[#f97316] border-[rgba(249,115,22,0.2)]", label: "Active"    },
   matured:   { cls: "bg-green-500/10 text-green-400 border-green-500/20",                      label: "Matured"   },
   cancelled: { cls: "bg-red-500/10 text-red-400 border-red-500/20",                            label: "Cancelled" },
+  withdrawn: { cls: "bg-[#252525] text-[#888888] border-[#333333]",                            label: "Withdrawn"  },
 };
 
 const FILTER_TABS = [
-  { label: "All",       value: ""          },
-  { label: "Active",    value: "active"    },
-  { label: "Matured",   value: "matured"   },
-  { label: "Cancelled", value: "cancelled" },
+  { label: "All",       value: ""           },
+  { label: "Active",    value: "active"     },
+  { label: "Matured",   value: "matured"    },
+  { label: "Withdrawn", value: "withdrawn"  },
+  { label: "Cancelled", value: "cancelled"  },
 ];
 
-const COLS = ["User", "Plan Name", "Amount (Rs.)", "Returns (Rs.)", "ROI %", "Status", "Start Date", "Maturity Date"];
+const COLS = ["User", "Plan Name", "Amount (Rs.)", "Returns (Rs.)", "ROI %", "Status", "Start Date", "Maturity"];
 
 function safeDate(d: string) { try { return format(new Date(d), "MMM d, yyyy"); } catch { return "—"; } }
 function fmtRs(n: number)    { return `Rs. ${n.toLocaleString()}`; }
@@ -201,7 +203,15 @@ export default function InvestmentsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5"><span className="text-[11px] font-dm-sans text-[#888888] tabular-nums">{safeDate(inv.start_date)}</span></td>
-                    <td className="px-4 py-3.5"><span className="text-[11px] font-dm-sans text-[#888888] tabular-nums">{safeDate(inv.maturity_date)}</span></td>
+                    <td className="px-4 py-3.5">
+                      {inv.maturity_date
+                        ? <span className={cn("text-[11px] font-dm-sans tabular-nums",
+                            inv.status === "active" && new Date(inv.maturity_date) <= new Date()
+                              ? "text-green-400 font-medium"
+                              : "text-[#888888]"
+                          )}>{safeDate(inv.maturity_date)}</span>
+                        : <span className="text-[#4a4a4a] text-[11px]">—</span>}
+                    </td>
                   </tr>
                 ))
               )}

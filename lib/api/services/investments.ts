@@ -1,9 +1,10 @@
 import apiClient from "../client";
 
-export type InvestmentStatus = "active" | "matured" | "cancelled";
+export type InvestmentStatus = "active" | "matured" | "cancelled" | "withdrawn";
 
 export interface Investment {
   id:             string;
+  user_id:        string;
   user_name:      string;
   user_phone:     string;
   plan_name:      string;
@@ -12,7 +13,7 @@ export interface Investment {
   roi_percentage: number;
   status:         InvestmentStatus;
   start_date:     string;
-  maturity_date:  string;
+  maturity_date:  string | null;
 }
 
 export interface InvestmentsResponse {
