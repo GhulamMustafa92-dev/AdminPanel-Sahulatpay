@@ -204,7 +204,7 @@ export default function SplitsPage() {
 
   const handleExport = () => {
     if (!data?.splits.length) { showToast("No data to export.", "error"); return; }
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = data.splits.map(s =>
       [s.creator_name, s.creator_phone, s.title, s.total_amount, s.split_type, s.participants_count, s.status, s.created_at].map(esc).join(","));
     const csv = [COLS.slice(0, -1).map(esc).join(","), ...rows].join("\n");

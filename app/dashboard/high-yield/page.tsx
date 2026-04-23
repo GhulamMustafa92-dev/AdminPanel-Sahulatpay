@@ -104,7 +104,7 @@ export default function HighYieldPage() {
 
   const handleExport = () => {
     if (!data?.deposits.length) { showToast("No data to export.", "error"); return; }
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = data.deposits.map(d =>
       [d.user_name, d.user_phone, d.amount, `${d.interest_rate}%`, d.period_days, d.maturity_date, d.status, d.interest_earned].map(esc).join(","));
     const csv = [COLS.map(esc).join(","), ...rows].join("\n");

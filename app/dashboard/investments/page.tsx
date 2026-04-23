@@ -93,7 +93,7 @@ export default function InvestmentsPage() {
 
   const handleExport = () => {
     if (!data?.investments.length) { showToast("No data to export.", "error"); return; }
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = data.investments.map(inv =>
       [inv.user_name, inv.user_phone, inv.plan_name, inv.amount, inv.returns, `${inv.roi_percentage}%`, inv.status, inv.start_date, inv.maturity_date].map(esc).join(","));
     const csv  = [COLS.map(esc).join(","), ...rows].join("\n");

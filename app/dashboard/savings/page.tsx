@@ -94,7 +94,7 @@ export default function SavingsPage() {
 
   const handleExport = () => {
     if (!data?.goals?.length) { showToast("No data to export.", "error"); return; }
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = (data.goals ?? []).map(g => [g.user_name, g.user_phone, g.goal_name, g.target_amount, g.current_amount, g.progress_percentage, g.status, g.created_at].map(esc).join(","));
     const csv = [COLS.map(esc).join(","), ...rows].join("\n");
     const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([csv], { type: "text/csv" })), download: `savings_${Date.now()}.csv` });
