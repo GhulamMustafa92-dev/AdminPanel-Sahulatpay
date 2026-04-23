@@ -7,9 +7,7 @@ import {
   Users,
   CreditCard,
   ArrowLeftRight,
-  PiggyBank,
   TrendingUp,
-  Percent,
   SplitSquareVertical,
   ShieldAlert,
   Shield,
@@ -49,16 +47,10 @@ const NAV_SECTIONS = [
         icon: ArrowLeftRight,
         label: "Transactions",
       },
-      { href: "/dashboard/savings", icon: PiggyBank, label: "Savings" },
       {
         href: "/dashboard/investments",
         icon: TrendingUp,
         label: "Investments",
-      },
-      {
-        href: "/dashboard/high-yield",
-        icon: Percent,
-        label: "High-Yield Deposits",
       },
       {
         href: "/dashboard/splits",

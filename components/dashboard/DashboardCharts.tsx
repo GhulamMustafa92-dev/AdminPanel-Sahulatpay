@@ -24,42 +24,18 @@ function calcTrend(series: { value: number }[]) {
   return Math.round(((b - a) / a) * 100);
 }
 
-// ── Mock data ────────────────────────────────────────────────────────────────
-const BASE = [145, 189, 123, 267, 198, 87, 312, 156, 201, 178, 234, 145, 289,
-              167, 212, 198, 156, 267, 189, 234, 178, 145, 189, 267, 234, 198, 156, 289, 212, 178];
-
-const MOCK_7D  = BASE.slice(0, 7).map((v, i) => ({ date: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i], value: v * 1000 }));
-const MOCK_30D = BASE.map((v, i) => ({ date: `D${i + 1}`, value: v * 1000 }));
-const MOCK_90D = BASE.slice(0, 13).map((v, i) => ({ date: `W${i + 1}`, value: v * 6500 }));
-
-const REV_7D = [89, 124, 97, 168, 142, 56, 203].map((v, i) => ({
-  date: ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"][i], value: v * 1000,
-}));
-
-const CATEGORY_DATA = [
-  { name: "Food & Dining", value: 3240 },
-  { name: "Shopping",      value: 2180 },
-  { name: "Transport",     value: 1560 },
-  { name: "Bill Payment",  value: 980  },
-  { name: "Other",         value: 640  },
-];
-
-const PURPOSE_DATA = [
-  { name: "Other",        count: 3240 },
-  { name: "Shopping",     count: 2180 },
-  { name: "Food",         count: 1890 },
-  { name: "Medical",      count: 1240 },
-  { name: "Bill Payment", count: 980  },
-  { name: "Transport",    count: 720  },
-];
-
-const HEALTH_DATA = [
-  { name: "Success", value: 8420, color: "#22c55e" },
-  { name: "Failed",  value: 340,  color: "#f87171" },
-  { name: "Pending", value: 180,  color: "#facc15" },
-];
-
 const ORANGE_RAMP = ["#f97316", "#fb923c", "#fdba74", "#fed7aa", "#fde8d0"];
+
+function EmptyChart({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[140px] gap-2 opacity-40">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.5">
+        <path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-6"/>
+      </svg>
+      <p className="text-[11px] font-dm-sans text-[#888888]">{label}</p>
+    </div>
+  );
+}
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 function ChartCard({ title, topRight, children, minH = 240 }: {
@@ -118,7 +94,7 @@ function VolumeChart({ data, timeRange, onTimeRangeChange }: {
   timeRange: TimeRange;
   onTimeRangeChange: (r: TimeRange) => void;
 }) {
-  const series = data?.time_series ?? (timeRange === "7D" ? MOCK_7D : timeRange === "30D" ? MOCK_30D : MOCK_90D);
+  const series = data?.time_series ?? [];
   const trend = calcTrend(series);
 
   return (
@@ -131,7 +107,7 @@ function VolumeChart({ data, timeRange, onTimeRangeChange }: {
         </div>
       }
     >
-      <ResponsiveContainer width="100%" height={200}>
+      {series.length === 0 ? <EmptyChart label="No data available" /> : <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={series} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="volGrad" x1="0" y1="0" x2="0" y2="1">
@@ -145,61 +121,65 @@ function VolumeChart({ data, timeRange, onTimeRangeChange }: {
           <Tooltip content={<VolTooltip />} cursor={{ stroke: "rgba(249,115,22,0.2)", strokeWidth: 1 }} />
           <Area type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} fill="url(#volGrad)" dot={false} activeDot={{ r: 4, fill: "#f97316", strokeWidth: 0 }} />
         </AreaChart>
-      </ResponsiveContainer>
+      </ResponsiveContainer>}
     </ChartCard>
   );
 }
 
 // ── Chart: By Category (Donut) ───────────────────────────────────────────────
-function CategoryDonut() {
-  const total = CATEGORY_DATA.reduce((s, x) => s + x.value, 0);
+function CategoryDonut({ data }: { data?: DashboardStats }) {
+  const series = data?.category_data ?? [];
+  const total = series.reduce((s, x) => s + x.value, 0);
   return (
     <ChartCard title="By Category">
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={170}>
-          <PieChart>
-            <Pie data={CATEGORY_DATA} innerRadius={52} outerRadius={78} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
-              {CATEGORY_DATA.map((_, i) => <Cell key={i} fill={ORANGE_RAMP[i]} />)}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <p className="font-syne font-bold text-[17px] leading-none" style={{ color: "var(--text-primary)" }}>
-              {fmtCount(total)}
-            </p>
-            <p style={{ fontSize: "10px", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em" }}>TOTAL</p>
+      {series.length === 0 ? <EmptyChart label="No transaction type data" /> : <>
+        <div className="relative">
+          <ResponsiveContainer width="100%" height={170}>
+            <PieChart>
+              <Pie data={series} innerRadius={52} outerRadius={78} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
+                {series.map((_, i) => <Cell key={i} fill={ORANGE_RAMP[i % ORANGE_RAMP.length]} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <p className="font-syne font-bold text-[17px] leading-none" style={{ color: "var(--text-primary)" }}>
+                {fmtCount(total)}
+              </p>
+              <p style={{ fontSize: "10px", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em" }}>TOTAL</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="px-3 space-y-2 mt-1">
-        {CATEGORY_DATA.map((item, i) => (
-          <div key={item.name} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ORANGE_RAMP[i] }} />
-              <span className="text-[12px] font-dm-sans" style={{ color: "var(--text-secondary)" }}>{item.name}</span>
+        <div className="px-3 space-y-2 mt-1">
+          {series.map((item, i) => (
+            <div key={item.name} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: ORANGE_RAMP[i % ORANGE_RAMP.length] }} />
+                <span className="text-[12px] font-dm-sans" style={{ color: "var(--text-secondary)" }}>{item.name}</span>
+              </div>
+              <span className="text-[12px] font-syne font-semibold" style={{ color: "var(--text-primary)" }}>
+                {item.value.toLocaleString()}
+              </span>
             </div>
-            <span className="text-[12px] font-syne font-semibold" style={{ color: "var(--text-primary)" }}>
-              {item.value.toLocaleString()}
-            </span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </>}
     </ChartCard>
   );
 }
 
 // ── Chart: Weekly Revenue ────────────────────────────────────────────────────
-function RevenueChart() {
-  const trend = calcTrend(REV_7D);
+function RevenueChart({ data }: { data?: DashboardStats }) {
+  const series = data?.weekly_revenue ?? [];
+  const trend = calcTrend(series);
   return (
     <ChartCard
       title="Weekly Revenue"
       topRight={<TrendBadge pct={trend} />}
       minH={220}
     >
-      <ResponsiveContainer width="100%" height={160}>
-        <AreaChart data={REV_7D} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+      {series.length === 0 ? <EmptyChart label="No fee revenue in this period" /> : <ResponsiveContainer width="100%" height={160}>
+        <AreaChart data={series} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%"   stopColor="#f97316" stopOpacity={0.25} />
@@ -212,18 +192,19 @@ function RevenueChart() {
           <Tooltip content={<VolTooltip />} cursor={{ stroke: "rgba(249,115,22,0.2)", strokeWidth: 1 }} />
           <Area type="monotone" dataKey="value" stroke="#f97316" strokeWidth={2} fill="url(#revGrad)" dot={false} activeDot={{ r: 4, fill: "#f97316", strokeWidth: 0 }} />
         </AreaChart>
-      </ResponsiveContainer>
+      </ResponsiveContainer>}
     </ChartCard>
   );
 }
 
 // ── Chart: Purpose Breakdown ─────────────────────────────────────────────────
-function PurposeBreakdown() {
-  const max = Math.max(...PURPOSE_DATA.map((x) => x.count));
+function PurposeBreakdown({ data }: { data?: DashboardStats }) {
+  const series = data?.purpose_breakdown ?? [];
+  const max = Math.max(1, ...series.map((x) => x.count));
   return (
     <ChartCard title="Purpose Breakdown" minH={220}>
-      <div className="px-3 space-y-3 pt-1">
-        {PURPOSE_DATA.map((item) => (
+      {series.length === 0 ? <EmptyChart label="No transaction purposes recorded" /> : <div className="px-3 space-y-3 pt-1">
+        {series.map((item) => (
           <div key={item.name}>
             <div className="flex items-center justify-between mb-1">
               <span className="text-[12px] font-dm-sans" style={{ color: "var(--text-secondary)" }}>{item.name}</span>
@@ -243,46 +224,49 @@ function PurposeBreakdown() {
             </div>
           </div>
         ))}
-      </div>
+      </div>}
     </ChartCard>
   );
 }
 
 // ── Chart: Transaction Health ────────────────────────────────────────────────
-function HealthDonut() {
-  const total = HEALTH_DATA.reduce((s, x) => s + x.value, 0);
+function HealthDonut({ data }: { data?: DashboardStats }) {
+  const series = data?.health_data ?? [];
+  const total = series.reduce((s, x) => s + x.value, 0);
   return (
     <ChartCard title="Transaction Health" minH={220}>
-      <div className="relative">
-        <ResponsiveContainer width="100%" height={150}>
-          <PieChart>
-            <Pie data={HEALTH_DATA} innerRadius={48} outerRadius={70} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
-              {HEALTH_DATA.map((item) => <Cell key={item.name} fill={item.color} />)}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <p className="font-syne font-bold text-base leading-none" style={{ color: "var(--text-primary)" }}>
-              {fmtCount(total)}
-            </p>
-            <p style={{ fontSize: "10px", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em" }}>TOTAL</p>
+      {series.length === 0 ? <EmptyChart label="No transaction data yet" /> : <>
+        <div className="relative">
+          <ResponsiveContainer width="100%" height={150}>
+            <PieChart>
+              <Pie data={series} innerRadius={48} outerRadius={70} dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
+                {series.map((item) => <Cell key={item.name} fill={item.color} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <p className="font-syne font-bold text-base leading-none" style={{ color: "var(--text-primary)" }}>
+                {fmtCount(total)}
+              </p>
+              <p style={{ fontSize: "10px", color: "var(--text-secondary)", fontFamily: "var(--font-dm-sans)", letterSpacing: "0.06em" }}>TOTAL</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="px-3 space-y-2">
-        {HEALTH_DATA.map((item) => (
-          <div key={item.name} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: item.color }} />
-              <span className="text-[12px] font-dm-sans" style={{ color: "var(--text-secondary)" }}>{item.name}</span>
+        <div className="px-3 space-y-2">
+          {series.map((item) => (
+            <div key={item.name} className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: item.color }} />
+                <span className="text-[12px] font-dm-sans" style={{ color: "var(--text-secondary)" }}>{item.name}</span>
+              </div>
+              <span className="text-[12px] font-syne font-semibold" style={{ color: "var(--text-primary)" }}>
+                {item.value.toLocaleString()}
+              </span>
             </div>
-            <span className="text-[12px] font-syne font-semibold" style={{ color: "var(--text-primary)" }}>
-              {item.value.toLocaleString()}
-            </span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </>}
     </ChartCard>
   );
 }
@@ -300,14 +284,14 @@ export default function DashboardCharts({ data, timeRange, onTimeRangeChange }: 
       {/* Row 1: Volume (65%) + Category donut (35%) */}
       <div className="grid gap-4" style={{ gridTemplateColumns: "65fr 35fr" }}>
         <VolumeChart data={data} timeRange={timeRange} onTimeRangeChange={onTimeRangeChange} />
-        <CategoryDonut />
+        <CategoryDonut data={data} />
       </div>
 
       {/* Row 2: Revenue + Purpose + Health */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <RevenueChart />
-        <PurposeBreakdown />
-        <HealthDonut />
+        <RevenueChart data={data} />
+        <PurposeBreakdown data={data} />
+        <HealthDonut data={data} />
       </div>
     </div>
   );

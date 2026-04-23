@@ -16,10 +16,15 @@ export interface DashboardStats {
   pending_business:     number;
   unread_notifications: number;
   generated_at:         string;
+  days?:                number;
   time_series?:         TimeSeriesPoint[];
+  category_data?:       { name: string; value: number }[];
+  weekly_revenue?:      { date: string; value: number }[];
+  purpose_breakdown?:   { name: string; count: number }[];
+  health_data?:         { name: string; value: number; color: string }[];
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
-  const { data } = await apiClient.get<DashboardStats>("/admin/dashboard");
+export async function getDashboardStats(days = 7): Promise<DashboardStats> {
+  const { data } = await apiClient.get<DashboardStats>(`/admin/dashboard?days=${days}`);
   return data;
 }

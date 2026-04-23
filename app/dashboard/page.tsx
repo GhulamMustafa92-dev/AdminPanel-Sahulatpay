@@ -35,13 +35,17 @@ const SPARKS = {
   pending: [12, 8, 15, 10, 18, 14, 9],
 };
 
+const RANGE_DAYS: Record<TimeRange, number> = { "7D": 7, "30D": 30, "90D": 90 };
+
 export default function DashboardPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("7D");
   const { setExtras, clearExtras } = useTopNavExtras();
 
+  const days = RANGE_DAYS[timeRange];
+
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn:  getDashboardStats,
+    queryKey: ["dashboard", days],
+    queryFn:  () => getDashboardStats(days),
     refetchInterval: 15_000,
   });
 
@@ -58,37 +62,48 @@ export default function DashboardPage() {
 
   useEffect(() => () => clearExtras(), [clearExtras]);
 
+  // ── Derive sparklines from real time_series data ─────────────────────────
+  const volSpark = data?.time_series?.map(p => p.value) ?? [];
+  const calcTrendPct = (series: number[]) => {
+    if (series.length < 2) return undefined;
+    const mid = Math.floor(series.length / 2);
+    const a = series.slice(0, mid).reduce((s, x) => s + x, 0) / mid;
+    const b = series.slice(mid).reduce((s, x) => s + x, 0) / (series.length - mid);
+    return a === 0 ? undefined : Math.round(((b - a) / a) * 100);
+  };
+  const volTrendPct = calcTrendPct(volSpark);
+
   // ── Stat card definitions ────────────────────────────────────────────────
   const CARDS = [
     {
       icon: Users,          value: fmtCount(data?.total_users),
       label: "Total Users",          sublabel: "Registered accounts",
-      spark: SPARKS.users,  trend: { pct: 12 }, delay: 0,
+      spark: volSpark,      trend: undefined,   delay: 0,
     },
     {
       icon: ArrowLeftRight, value: fmtCount(data?.total_transactions),
       label: "Total Transactions",   sublabel: "All time",
-      spark: SPARKS.tx,     trend: { pct: 8  }, delay: 60,
+      spark: volSpark,      trend: undefined,   delay: 60,
     },
     {
       icon: DollarSign,     value: fmtRs(data?.total_volume_pkr),
       label: "Total Volume",         sublabel: "Completed transactions",
-      spark: SPARKS.vol,    trend: { pct: 15 }, delay: 120,
+      spark: volSpark,      trend: volTrendPct != null ? { pct: volTrendPct } : undefined, delay: 120,
     },
     {
       icon: Zap,            value: fmtCount(data?.open_fraud_alerts),
       label: "Open Fraud Alerts",    sublabel: "Unresolved flags",
-      spark: SPARKS.today,  trend: { pct: -3 }, delay: 180,
+      spark: [],            trend: undefined,   delay: 180,
     },
     {
       icon: Activity,       value: fmtCount(data?.active_users),
       label: "Active Users",         sublabel: "Active accounts",
-      spark: SPARKS.active, trend: { pct: 5  }, delay: 240,
+      spark: [],            trend: undefined,   delay: 240,
     },
     {
       icon: Clock,          value: fmtCount(data?.kyc_queue),
       label: "KYC Queue",            sublabel: "Pending verification",
-      spark: SPARKS.pending,trend: { pct: -1 }, delay: 300,
+      spark: [],            trend: undefined,   delay: 300,
     },
   ];
 

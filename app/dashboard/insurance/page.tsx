@@ -9,8 +9,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  getInsurance,
+  getInsurance, cancelInsurancePolicy,
   type InsurancePolicy, type InsuranceStatus, type InsuranceResponse,
 } from "@/lib/api/services/insurance";
 import { useTopNavExtras } from "@/context/TopNavExtrasContext";
@@ -41,7 +42,7 @@ const FILTER_TABS = [
   { label: "Cancelled", value: "cancelled" },
 ];
 
-const COLS = ["User", "Policy Type", "Premium (Rs./mo)", "Coverage (Rs.)", "Status", "Start Date", "Expiry Date"];
+const COLS = ["User", "Plan / Policy No.", "Policy Type", "Auto-Deduct", "Premium (Rs./mo)", "Coverage (Rs.)", "Status", "Start Date", "Action"];
 
 function safeDate(d: string) { try { return format(new Date(d), "MMM d, yyyy"); } catch { return "—"; } }
 function fmtRs(n: number)    { return `Rs. ${n.toLocaleString()}`; }
@@ -74,6 +75,8 @@ export default function InsurancePage() {
   const [searchInput,   setSearchInput]   = useState("");
   const [debouncedSrch, setDebouncedSrch] = useState("");
   const [toast,         setToast]         = useState<ToastState | null>(null);
+  const [cancelTarget,  setCancelTarget]  = useState<InsurancePolicy | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedSrch(searchInput); setPage(1); }, 400);
@@ -97,6 +100,16 @@ export default function InsurancePage() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4500);
   }, []);
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => cancelInsurancePolicy(id),
+    onSuccess: (data) => {
+      showToast(data.message, "success");
+      setCancelTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["insurance"] });
+    },
+    onError: () => { showToast("Failed to cancel policy.", "error"); setCancelTarget(null); },
+  });
 
   const handleExport = () => {
     if (!data?.policies.length) { showToast("No data to export.", "error"); return; }
@@ -210,9 +223,20 @@ export default function InsurancePage() {
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
+                        <p className="text-[12px] font-dm-sans font-medium text-[#f0f0f0] truncate max-w-[130px]">{p.plan_name || "—"}</p>
+                        <p className="text-[10px] font-dm-sans text-[#4a4a4a]">{p.policy_number || "—"}</p>
+                      </td>
+                      <td className="px-4 py-3.5">
                         <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-dm-sans font-medium border capitalize", typeCls)}>
                           {p.policy_type || "—"}
                         </span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        {p.auto_deduct_enabled
+                          ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-dm-sans font-medium border bg-green-500/10 text-green-400 border-green-500/20">
+                              ✓ {p.auto_deduct_freq}
+                            </span>
+                          : <span className="text-[11px] font-dm-sans text-[#4a4a4a]">Off</span>}
                       </td>
                       <td className="px-4 py-3.5"><span className="text-[12px] font-dm-sans font-medium text-[#f97316] tabular-nums">{fmtRs(p.premium)}</span></td>
                       <td className="px-4 py-3.5"><span className="text-[12px] font-dm-sans text-[#888888] tabular-nums">{fmtRs(p.coverage)}</span></td>
@@ -223,7 +247,14 @@ export default function InsurancePage() {
                         </span>
                       </td>
                       <td className="px-4 py-3.5"><span className="text-[11px] font-dm-sans text-[#888888] tabular-nums">{safeDate(p.start_date)}</span></td>
-                      <td className="px-4 py-3.5"><span className="text-[11px] font-dm-sans text-[#888888] tabular-nums">{safeDate(p.expiry_date)}</span></td>
+                      <td className="px-4 py-3.5">
+                        {p.status === "active" && (
+                          <button onClick={() => setCancelTarget(p)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-dm-sans font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors">
+                            <X className="w-3 h-3" /> Cancel
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })
@@ -243,6 +274,40 @@ export default function InsurancePage() {
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="flex items-center justify-center w-8 h-8 rounded-lg border border-[#252525] text-[#888888] bg-[#1a1a1a] hover:text-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed transition-all"><ChevronLeft className="w-4 h-4" /></button>
             <span className="px-3 py-1.5 rounded-lg text-[12px] font-dm-sans text-[#f0f0f0] bg-[rgba(249,115,22,0.08)] border border-[rgba(249,115,22,0.15)]">{page} / {totalPages}</span>
             <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="flex items-center justify-center w-8 h-8 rounded-lg border border-[#252525] text-[#888888] bg-[#1a1a1a] hover:text-[#f0f0f0] disabled:opacity-40 disabled:cursor-not-allowed transition-all"><ChevronRight className="w-4 h-4" /></button>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel confirmation modal */}
+      {cancelTarget && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60">
+          <div className="bg-[#1a1a1a] border border-[#252525] rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20">
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+              </div>
+              <div>
+                <p className="font-syne font-bold text-[#f0f0f0] text-[15px]">Cancel Policy?</p>
+                <p className="text-[11px] font-dm-sans text-[#888888]">A pro-rata refund will be credited</p>
+              </div>
+            </div>
+            <div className="bg-[#111111] rounded-xl p-3.5 mb-5 space-y-1.5">
+              <p className="text-[12px] font-dm-sans text-[#f0f0f0]">{cancelTarget.plan_name}</p>
+              <p className="text-[11px] font-dm-sans text-[#888888]">{cancelTarget.user_name} · {cancelTarget.policy_number || "—"}</p>
+              <p className="text-[11px] font-dm-sans text-[#f97316]">Premium: Rs. {cancelTarget.premium.toLocaleString()}</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setCancelTarget(null)}
+                className="flex-1 py-2.5 rounded-xl text-[12px] font-dm-sans font-medium bg-[#252525] text-[#888888] hover:text-[#f0f0f0] transition-colors">
+                Keep Policy
+              </button>
+              <button
+                onClick={() => cancelMutation.mutate(cancelTarget.id)}
+                disabled={cancelMutation.isPending}
+                className="flex-1 py-2.5 rounded-xl text-[12px] font-dm-sans font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors disabled:opacity-50">
+                {cancelMutation.isPending ? "Cancelling…" : "Confirm Cancel"}
+              </button>
+            </div>
           </div>
         </div>
       )}
