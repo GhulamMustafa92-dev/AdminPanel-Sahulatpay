@@ -113,7 +113,7 @@ export default function InsurancePage() {
 
   const handleExport = () => {
     if (!data?.policies.length) { showToast("No data to export.", "error"); return; }
-    const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+    const esc = (v: string | number | null) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const rows = data.policies.map(p =>
       [p.user_name, p.user_phone, p.policy_type, p.premium, p.coverage, p.status, p.start_date, p.expiry_date].map(esc).join(","));
     const csv = [COLS.map(esc).join(","), ...rows].join("\n");
