@@ -42,7 +42,7 @@ const ACTION_TYPE_OPTIONS = [
   { value: "login",       label: "Login"        },
 ];
 
-const COLS = ["Timestamp", "Admin", "Action Type", "Target ID", "Details / Reason", "IP Address"];
+const COLS = ["Timestamp", "Admin", "Action Type", "Target ID", "Details / Reason", "Metadata"];
 
 function getBadge(type: string) {
   return ACTION_BADGE[type] ?? {
@@ -240,7 +240,11 @@ export default function AuditLogPage() {
                         <p className="text-[12px] font-dm-sans text-[#888888] max-w-[220px] truncate" title={log.reason ?? ""}>{log.reason || "—"}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-mono text-[11px] text-[#4a4a4a] tabular-nums whitespace-nowrap">{log.created_at ? new Date(log.created_at).toLocaleDateString() : "—"}</span>
+                        <span className="font-mono text-[11px] text-[#4a4a4a] truncate max-w-[140px] block" title={log.action_metadata ? JSON.stringify(log.action_metadata) : ""}>
+                          {log.action_metadata && Object.keys(log.action_metadata).length > 0
+                            ? JSON.stringify(log.action_metadata).slice(0, 40) + (JSON.stringify(log.action_metadata).length > 40 ? "…" : "")
+                            : "—"}
+                        </span>
                       </td>
                     </tr>
                   );
